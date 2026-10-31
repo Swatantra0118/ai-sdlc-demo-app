@@ -72,7 +72,6 @@ public class ApprovalServiceTests
     [InlineData("Manager", "50000.00")]
     [InlineData("Approver", "50000.00")]
     [InlineData("Admin", "50000.00")]
-    [InlineData("Director", "500000.00")]
     // Catches treating any inclusive role limit as an exclusive threshold.
     public void Approve_AmountAtRoleLimit_Approves(string roleName, string amountText)
     {
@@ -87,12 +86,29 @@ public class ApprovalServiceTests
         Assert.NotNull(result.DecidedAt);
     }
 
+    [Fact]
+    // Catches denying a Director's one-step approval at the inclusive 500,000.00 boundary.
+    public void Approve_DirectorAt500000_ApprovesInOneStep()
+    {
+        var invoice = InvoiceWith("INV-DIRECTOR-LIMIT", InvoiceStatus.PendingApproval, 500000.00m);
+        var repository = new FakeInvoiceRepository(invoice);
+        var service = new ApprovalService(repository);
+
+        var result = service.Approve("INV-DIRECTOR-LIMIT", "director.one", ApproverRole.Director);
+
+        Assert.Equal(InvoiceStatus.Approved, result.Status);
+        Assert.Equal("director.one", result.DecidedBy);
+        Assert.NotNull(result.DecidedAt);
+        Assert.Null(result.FirstApprovedBy);
+        Assert.Null(result.FirstApprovedAt);
+        Assert.Equal(1, repository.UpdateCount);
+    }
+
     [Theory]
     [InlineData("Manager", "50000.00", "50000.01")]
     [InlineData("Approver", "50000.00", "50000.01")]
     [InlineData("Admin", "50000.00", "50000.01")]
-    [InlineData("Director", "500000.00", "500000.01")]
-    // Catches permitting an amount one cent above a role's limit or mutating/persisting its rejection.
+    // Catches permitting an amount one cent above a Manager-level limit or mutating/persisting its rejection.
     public void Approve_AmountAboveRoleLimit_RejectsWithoutChangingInvoice(
         string roleName,
         string limitText,
@@ -117,6 +133,117 @@ public class ApprovalServiceTests
             role,
             limit,
             amount);
+    }
+
+    [Fact]
+    // This replaces the Phase A rejection: Phase B requires a first approval above 500,000.00.
+    public void Approve_DirectorAt50000001_RecordsFirstApprovalAndRemainsPending()
+    {
+        var invoice = InvoiceWith("INV-DIRECTOR-FIRST", InvoiceStatus.PendingApproval, 500000.01m);
+        var repository = new FakeInvoiceRepository(invoice);
+        var service = new ApprovalService(repository);
+
+        var result = service.Approve("INV-DIRECTOR-FIRST", "first.director", ApproverRole.Director);
+
+        Assert.Equal(InvoiceStatus.PendingApproval, result.Status);
+        Assert.Equal("first.director", result.FirstApprovedBy);
+        Assert.NotNull(result.FirstApprovedAt);
+        Assert.Null(result.DecidedBy);
+        Assert.Null(result.DecidedAt);
+        Assert.Null(result.DecisionNote);
+        Assert.Equal(1, repository.UpdateCount);
+    }
+
+    [Fact]
+    // Catches incorrectly applying the Manager limit to the first approver of a high-value invoice.
+    public void Approve_ManagerAsFirstApproverAbove500000_RecordsFirstApprovalAndRemainsPending()
+    {
+        var invoice = InvoiceWith("INV-MANAGER-FIRST", InvoiceStatus.PendingApproval, 600000m);
+        var repository = new FakeInvoiceRepository(invoice);
+        var service = new ApprovalService(repository);
+
+        var result = service.Approve("INV-MANAGER-FIRST", "first.manager", ApproverRole.Manager);
+
+        Assert.Equal(InvoiceStatus.PendingApproval, result.Status);
+        Assert.Equal("first.manager", result.FirstApprovedBy);
+        Assert.NotNull(result.FirstApprovedAt);
+        Assert.Null(result.DecidedBy);
+        Assert.Null(result.DecidedAt);
+        Assert.Null(result.DecisionNote);
+        Assert.Equal(1, repository.UpdateCount);
+    }
+
+    [Fact]
+    // Catches failing to complete a high-value invoice with a distinct Director as the second approver.
+    public void Approve_DifferentDirectorSecond_ApprovesInvoice()
+    {
+        var invoice = InvoiceWith("INV-DIRECTOR-SECOND", InvoiceStatus.PendingApproval, 600000m);
+        invoice.FirstApprovedBy = "first.manager";
+        invoice.FirstApprovedAt = new DateTime(2026, 1, 1, 3, 4, 5, DateTimeKind.Utc);
+        var repository = new FakeInvoiceRepository(invoice);
+        var service = new ApprovalService(repository);
+
+        var firstApprovedAt = invoice.FirstApprovedAt;
+
+        var result = service.Approve("INV-DIRECTOR-SECOND", "second.director", ApproverRole.Director);
+
+        Assert.Equal(InvoiceStatus.Approved, result.Status);
+        Assert.Equal("second.director", result.DecidedBy);
+        Assert.NotNull(result.DecidedAt);
+        Assert.Equal("first.manager", result.FirstApprovedBy);
+        Assert.Equal(firstApprovedAt, result.FirstApprovedAt);
+        Assert.Equal(1, repository.UpdateCount);
+    }
+
+    [Fact]
+    // Catches allowing the first approver to approve the same high-value invoice again.
+    public void Approve_SameUserTwice_IsRejectedWithoutChangingInvoice()
+    {
+        var invoice = InvoiceWith("INV-SAME-USER", InvoiceStatus.PendingApproval, 600000m);
+        invoice.FirstApprovedBy = "same.user";
+        invoice.FirstApprovedAt = new DateTime(2026, 1, 1, 3, 4, 5, DateTimeKind.Utc);
+        var repository = new FakeInvoiceRepository(invoice);
+        var service = new ApprovalService(repository);
+
+        AssertRejectedWithoutChanges(
+            invoice,
+            repository,
+            () => service.Approve("INV-SAME-USER", "same.user", ApproverRole.Director),
+            message => Assert.Contains("same", message, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    // Catches comparing usernames without both trimming whitespace and ignoring letter case.
+    public void Approve_SameUserWithDifferentCaseAndWhitespace_IsRejectedWithoutChangingInvoice()
+    {
+        var invoice = InvoiceWith("INV-SAME-USER-NORMALIZED", InvoiceStatus.PendingApproval, 600000m);
+        invoice.FirstApprovedBy = "  Same.User  ";
+        invoice.FirstApprovedAt = new DateTime(2026, 1, 1, 3, 4, 5, DateTimeKind.Utc);
+        var repository = new FakeInvoiceRepository(invoice);
+        var service = new ApprovalService(repository);
+
+        AssertRejectedWithoutChanges(
+            invoice,
+            repository,
+            () => service.Approve("INV-SAME-USER-NORMALIZED", "same.user ", ApproverRole.Director),
+            message => Assert.Contains("same", message, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    // Catches allowing a non-Director to provide the required second approval.
+    public void Approve_ManagerAsSecondApprover_IsRejectedWithoutChangingInvoice()
+    {
+        var invoice = InvoiceWith("INV-MANAGER-SECOND", InvoiceStatus.PendingApproval, 600000m);
+        invoice.FirstApprovedBy = "first.approver";
+        invoice.FirstApprovedAt = new DateTime(2026, 1, 1, 3, 4, 5, DateTimeKind.Utc);
+        var repository = new FakeInvoiceRepository(invoice);
+        var service = new ApprovalService(repository);
+
+        AssertRejectedWithoutChanges(
+            invoice,
+            repository,
+            () => service.Approve("INV-MANAGER-SECOND", "second.manager", ApproverRole.Manager),
+            message => Assert.Contains("Director", message, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -172,6 +299,7 @@ public class ApprovalServiceTests
         var decisionNote = invoice.DecisionNote;
         var firstApprovedBy = invoice.FirstApprovedBy;
         var firstApprovedAt = invoice.FirstApprovedAt;
+        var updateCount = repository.UpdateCount;
 
         var exception = Assert.Throws<ApprovalRejectedException>(attempt);
 
@@ -182,6 +310,6 @@ public class ApprovalServiceTests
         Assert.Equal(decisionNote, invoice.DecisionNote);
         Assert.Equal(firstApprovedBy, invoice.FirstApprovedBy);
         Assert.Equal(firstApprovedAt, invoice.FirstApprovedAt);
-        Assert.Equal(0, repository.UpdateCount);
+        Assert.Equal(updateCount, repository.UpdateCount);
     }
 }
