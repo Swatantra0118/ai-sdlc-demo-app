@@ -37,3 +37,19 @@
 - Commands run: `.specify/scripts/powershell/setup-tasks.ps1 -Json`; task format and extension-hook validation
 - Result: Generated 15 sequential tasks across Phases A, B, C, and final validation. All task lines passed checklist-format validation; no tests run because this task produced planning documentation only.
 - Human verdict: TODO
+
+### 2026-11-01 00:52 — Implement Phase A approval limits
+- Agent: AI assistant using Copilot SDK in VS Code (Test Writer, Implementer, Reviewer; models unspecified)
+- Prompt (summary): Implement Phase A role-based single-approver limits, API role wiring and demo accounts, plus boundary and rejection-state tests; explicitly defer the two-approver rule.
+- Files changed: `backend/src/InvoiceApp.Domain/ApproverRole.cs`, `ApprovalLimits.cs`, `ApprovalRejectedException.cs`, `ApprovalService.cs`, `Invoice.cs`, `backend/src/InvoiceApp.Api/Controllers/ApprovalsController.cs`, `backend/src/InvoiceApp.Api/appsettings.json`, `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`, `FakeInvoiceRepository.cs`, `docs/ai-log/AI_INTERACTIONS.md`
+- Commands run: `dotnet build backend/InvoiceApp.sln`; `dotnet test backend/InvoiceApp.sln`
+- Result: Build succeeded with 0 warnings and 0 errors. Initial test run exposed rejection-message formatting mismatch; after formatting correction all 15 tests passed. Reviewer reported no findings.
+- Human verdict: TODO
+
+### 2026-11-01 01:02 — Record Phase A interaction
+- Agent: AI assistant using Copilot SDK in VS Code (model not specified)
+- Prompt (summary): User explicitly invoked `/ai-interaction-log`; append a structured summary of the completed Phase A approval-limits implementation.
+- Files changed: `docs/ai-log/AI_INTERACTIONS.md`
+- Commands run: none
+- Result: Appended this interaction record; Phase A backend tests passed 15/15.
+- Human verdict: Single Approval rule implementaion on Invoices Approval

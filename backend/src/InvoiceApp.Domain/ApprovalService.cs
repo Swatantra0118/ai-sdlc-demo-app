@@ -28,10 +28,17 @@ public class ApprovalService
         return invoice;
     }
 
-    public Invoice Approve(string invoiceId, string approver)
+    public Invoice Approve(string invoiceId, string approver, ApproverRole role)
     {
         var invoice = Find(invoiceId);
         EnsurePending(invoice);
+
+        var limit = ApprovalLimits.GetLimit(role);
+        if (invoice.Amount > limit)
+        {
+            throw new ApprovalRejectedException(
+                $"{role} cannot approve invoice amount {invoice.Amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)} because the approval limit is {limit.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)}.");
+        }
 
         invoice.Status = InvoiceStatus.Approved;
         invoice.DecidedBy = approver;
