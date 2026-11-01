@@ -28,10 +28,49 @@ public class ApprovalService
         return invoice;
     }
 
-    public Invoice Approve(string invoiceId, string approver)
+    public Invoice Approve(string invoiceId, string approver, ApproverRole role)
     {
         var invoice = Find(invoiceId);
         EnsurePending(invoice);
+
+        if (invoice.Amount > ApprovalLimits.DirectorLimit)
+        {
+            if (invoice.FirstApprovedBy is null)
+            {
+                invoice.FirstApprovedBy = approver;
+                invoice.FirstApprovedAt = DateTime.UtcNow;
+                _repository.Update(invoice);
+                return invoice;
+            }
+
+            if (string.Equals(
+                    invoice.FirstApprovedBy.Trim(),
+                    approver.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ApprovalRejectedException(
+                    "The same user cannot provide both approvals.");
+            }
+
+            if (role != ApproverRole.Director)
+            {
+                throw new ApprovalRejectedException(
+                    "A Director is required to provide the second approval.");
+            }
+
+            invoice.Status = InvoiceStatus.Approved;
+            invoice.DecidedBy = approver;
+            invoice.DecidedAt = DateTime.UtcNow;
+            _repository.Update(invoice);
+            return invoice;
+        }
+
+        var limit = ApprovalLimits.GetLimit(role);
+        if (invoice.Amount > limit)
+        {
+            throw new ApprovalRejectedException(
+                $"{role} cannot approve invoice amount {invoice.Amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)} because the approval limit is {limit.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)}.");
+        }
 
         invoice.Status = InvoiceStatus.Approved;
         invoice.DecidedBy = approver;

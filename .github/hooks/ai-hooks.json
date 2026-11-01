@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart":        [{ "type": "command", "command": "node .github/hooks/scripts/log-event.cjs sessionStart", "cwd": ".", "timeoutSec": 10 }],
+    "userPromptSubmitted": [{ "type": "command", "command": "node .github/hooks/scripts/log-event.cjs userPromptSubmitted", "cwd": ".", "timeoutSec": 10 }],
+    "preToolUse":          [{ "type": "command", "command": "node .github/hooks/scripts/log-event.cjs preToolUse", "cwd": ".", "timeoutSec": 10 }],
+    "postToolUse": [
+      { "type": "command", "command": "node .github/hooks/scripts/log-event.cjs postToolUse", "cwd": ".", "timeoutSec": 10 },
+      { "type": "command", "command": "node .github/hooks/scripts/format-csharp.cjs", "cwd": ".", "timeoutSec": 60 }
+    ],
+    "subagentStart":       [{ "type": "command", "command": "node .github/hooks/scripts/log-event.cjs subagentStart", "cwd": ".", "timeoutSec": 10 }],
+    "subagentStop":        [{ "type": "command", "command": "node .github/hooks/scripts/log-event.cjs subagentStop", "cwd": ".", "timeoutSec": 10 }],
+    "agentStop":           [{ "type": "command", "command": "node .github/hooks/scripts/log-event.cjs agentStop", "cwd": ".", "timeoutSec": 10 }],
+    "errorOccurred":       [{ "type": "command", "command": "node .github/hooks/scripts/log-event.cjs errorOccurred", "cwd": ".", "timeoutSec": 10 }]
+  }
+}

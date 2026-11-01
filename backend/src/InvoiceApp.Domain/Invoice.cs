@@ -9,5 +9,7 @@ public class Invoice
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? DecidedBy { get; set; }
     public DateTime? DecidedAt { get; set; }
+    public string? FirstApprovedBy { get; set; }
+    public DateTime? FirstApprovedAt { get; set; }
     public string? DecisionNote { get; set; }
 }
