@@ -137,7 +137,7 @@ public class ApprovalServiceTests
 
     [Fact]
     // This replaces the Phase A rejection: Phase B requires a first approval above 500,000.00.
-    public void Approve_DirectorAt50000001_RecordsFirstApprovalAndRemainsPending()
+    public void Approve_DirectorJustAbove500000_RecordsFirstApprovalAndRemainsPending()
     {
         var invoice = InvoiceWith("INV-DIRECTOR-FIRST", InvoiceStatus.PendingApproval, 500000.01m);
         var repository = new FakeInvoiceRepository(invoice);
@@ -256,6 +256,7 @@ public class ApprovalServiceTests
 
         Assert.Equal(InvoiceStatus.Rejected, result.Status);
         Assert.Equal("Duplicate invoice", result.DecisionNote);
+        Assert.Equal("demo.approver", result.DecidedBy);
     }
 
     [Fact]
