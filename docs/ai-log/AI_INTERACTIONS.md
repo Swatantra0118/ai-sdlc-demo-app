@@ -69,3 +69,11 @@
 - Commands run: none
 - Result: Appended this interaction record; Phase B backend tests passed 20/20.
 - Human verdict: Accepted after review,Verified the same-user check is trimmed and case-sensitive, the second approvar must be a director, All 20 tests passed.
+
+### 2026-11-01 13:55 — Add manager approval-limit E2E test
+- Agent: AI assistant using Copilot SDK in VS Code (model not specified)
+- Prompt (summary): Add one Playwright scenario validating that demo.manager cannot approve a 75,000 invoice, the 50,000 limit error is visible, and the invoice remains Pending Approval.
+- Files changed: `e2e/tests/approval-limits.spec.ts`, `e2e/pages/LoginPage.ts`, `e2e/pages/InvoicesPage.ts`, `e2e/pages/ApprovalsPage.ts`, `docs/ai-log/AI_INTERACTIONS.md`
+- Commands run: `cd e2e; npm test` (initial runs failed before navigating to the app; final run passed); `git diff --check`
+- Result: Final Playwright run passed 1/1 tests.
+- Human verdict: TODO
