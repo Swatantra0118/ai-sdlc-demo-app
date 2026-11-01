@@ -77,3 +77,19 @@
 - Commands run: `cd e2e; npm test` (initial runs failed before navigating to the app; final run passed); `git diff --check`
 - Result: Final Playwright run passed 1/1 tests.
 - Human verdict: TODO
+
+### 2026-11-01 21:57 — Kill ApprovalService mutation survivors
+- Agent: AI assistant using Copilot SDK in VS Code (model not specified)
+- Prompt (summary): Add the smallest regression tests for the reported ApprovalService mutants without changing production code.
+- Files changed: `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`, `docs/ai-log/AI_INTERACTIONS.md`
+- Commands run: `dotnet test backend/InvoiceApp.sln`; `dotnet stryker` from `backend/tests/InvoiceApp.Tests`; `git diff --check`
+- Result: Unit tests passed 21/21. All reported ApprovalService survivors are killed; Stryker reported 40 killed and 2 surviving mutants elsewhere.
+- Human verdict: TODO
+
+### 2026-11-01 22:14 — Test Invoice default strings
+- Agent: AI assistant using Copilot SDK in VS Code (model not specified)
+- Prompt (summary): Add minimal unit test coverage that fails if the Invoice Id or CustomerName empty-string initializer is removed; do not change production code.
+- Files changed: `backend/tests/InvoiceApp.Tests/InvoiceTests.cs`, `docs/ai-log/AI_INTERACTIONS.md`
+- Commands run: `dotnet test backend/InvoiceApp.sln`; `git diff --check`
+- Result: Backend unit tests passed 22/22. The new test asserts both default string properties are empty.
+- Human verdict: TODO
