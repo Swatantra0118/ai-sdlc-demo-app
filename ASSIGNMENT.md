@@ -1,6 +1,6 @@
 # AI in SDLC assignment — approval limits by role
 
-**Author:** Swatantra Tiwari · **PR:** [Pull Request #1](https://github.com/Swatantra0118/ai-sdlc-demo-app/pull/1) · **Video:** [Link to Demo MP4]
+**Author:** Swatantra Tiwari · **PR:** [Pull Request #1](https://github.com/Swatantra0118/ai-sdlc-demo-app/pull/1) · **Video:** [Link to Demo MP4](https://drive.google.com/file/d/1hcvdsjKhP4_zwJyO_Mkv9EJT5sPAWM-4/view?usp=sharing)
 
 ## 1. Summary
 
